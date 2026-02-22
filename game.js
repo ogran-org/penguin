@@ -1514,7 +1514,7 @@ function drawGameOver() {
     if (Math.floor(gameTime / 15) % 2 === 0) {
       ctx.fillStyle = '#ff66aa';
       ctx.font = 'bold 22px Arial';
-      ctx.fillText('NEW RECORD!', CANVAS_W / 2, CANVAS_H / 2 - 60);
+      ctx.fillText('NEW RECORD!', CANVAS_W / 2, CANVAS_H / 2 - 105);
     }
   }
 
