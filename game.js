@@ -389,12 +389,19 @@ function rectsOverlap(ax, ay, aw, ah, bx, by, bw, bh) {
 
 function checkCollisions() {
 
+  // 無敵時は1.25倍の当たり判定
+  const hitScale = player.shieldTimer > 0 ? 1.25 : 1.0;
+  const phw = player.w * hitScale;
+  const phh = player.h * hitScale;
+  const phx = player.x + (player.w - phw) / 2;
+  const phy = player.y + (player.h - phh) / 2;
+
   // ストンプ（上から踏みつけ）
   for (let ei = enemies.length - 1; ei >= 0; ei--) {
     const e = enemies[ei];
     if (e.knocked) continue;
-    const hOverlap = player.x + player.w - 8 > e.x + 4 && player.x + 8 < e.x + e.w - 4;
-    const playerBottom = player.y + player.h;
+    const hOverlap = phx + phw - 8 > e.x + 4 && phx + 8 < e.x + e.w - 4;
+    const playerBottom = phy + phh;
     const stomping = player.vy > 0 && playerBottom >= e.y && playerBottom <= e.y + e.h * 0.45;
     if (hOverlap && stomping) {
       const dir = e.x + e.w / 2 > player.x + player.w / 2 ? 1 : -1;
@@ -428,7 +435,7 @@ function checkCollisions() {
     for (let ei = enemies.length - 1; ei >= 0; ei--) {
       const e = enemies[ei];
       if (e.knocked) continue;
-      if (rectsOverlap(player.x + 4, player.y + 4, player.w - 8, player.h - 8,
+      if (rectsOverlap(phx + 4, phy + 4, phw - 8, phh - 8,
         e.x + 4, e.y + 4, e.w - 8, e.h - 8)) {
         const dir = e.x + e.w / 2 > player.x + player.w / 2 ? 1 : -1;
         e.knocked = true;
@@ -478,7 +485,7 @@ function checkCollisions() {
   // プレイヤー vs パワーアップ
   for (let pi = powerups.length - 1; pi >= 0; pi--) {
     const p = powerups[pi];
-    if (rectsOverlap(player.x + 4, player.y + 4, player.w - 8, player.h - 8,
+    if (rectsOverlap(phx + 4, phy + 4, phw - 8, phh - 8,
       p.x - p.r, p.y - p.r, p.r * 2, p.r * 2)) {
       if (p.type === 'heart') {
         player.hp = Math.min(player.hp + 1, 3);
