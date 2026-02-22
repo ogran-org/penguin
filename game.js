@@ -23,7 +23,7 @@ const STOMP_JUMP_POWER = -14;       // ストンプ後の大ジャンプ
 const STOMP_JUMP_WINDOW = 14;       // 大ジャンプ受け付けフレーム数（ストンプ後）
 const STOMP_JUMP_BUFFER = 8;        // 大ジャンプ先行入力フレーム数（ストンプ前）
 const JUMP_CUT_VY = -4;             // 短押し時の上昇速度上限
-const SHIELD_DURATION = 720;           // 無敵アイテムの持続フレーム数（約12秒）
+const SHIELD_DURATION = FLY_DURATION;  // 無敵アイテムの持続フレーム数（飛行と同じ）
 
 // ─── ゲーム状態 ──────────────────────────────────────────────────────────────
 const STATE = { TITLE: 0, PLAYING: 1, DYING: 2, GAMEOVER: 3 };
@@ -1036,14 +1036,30 @@ function drawSeal(e) {
   ctx.save();
   ctx.translate(cx, cy);
 
+  // バリアントごとのカラーパレット
+  let bodyCol, headCol, finCol, whiskerCol;
+  if (e.jumping && e.fast) {
+    // ジャンプ＋速い：赤紫（最強）
+    bodyCol = '#a04858'; headCol = '#b85868'; finCol = '#883848'; whiskerCol = '#cc8899';
+  } else if (e.fast) {
+    // 速い：橙色
+    bodyCol = '#c07840'; headCol = '#d08850'; finCol = '#a86030'; whiskerCol = '#e8bb88';
+  } else if (e.jumping) {
+    // ジャンプ：青緑
+    bodyCol = '#3d8f7a'; headCol = '#4ea08a'; finCol = '#2d7060'; whiskerCol = '#88ccbb';
+  } else {
+    // 通常：青灰色
+    bodyCol = '#7a8fa0'; headCol = '#8aa0b0'; finCol = '#6a8090'; whiskerCol = '#aabbc8';
+  }
+
   // 体
-  ctx.fillStyle = '#7a8fa0';
+  ctx.fillStyle = bodyCol;
   ctx.beginPath();
   ctx.ellipse(0, 4, 28, 18, 0, 0, Math.PI * 2);
   ctx.fill();
 
   // 頭
-  ctx.fillStyle = '#8aa0b0';
+  ctx.fillStyle = headCol;
   ctx.beginPath();
   ctx.ellipse(-22, -4, 14, 14, -0.2, 0, Math.PI * 2);
   ctx.fill();
@@ -1059,7 +1075,7 @@ function drawSeal(e) {
   ctx.fill();
 
   // ひげ
-  ctx.strokeStyle = '#aabbc8';
+  ctx.strokeStyle = whiskerCol;
   ctx.lineWidth = 1.2;
   [[-36, -4], [-38, -2], [-36, 0]].forEach(([wx, wy]) => {
     ctx.beginPath();
@@ -1073,7 +1089,7 @@ function drawSeal(e) {
   ctx.save();
   ctx.translate(24, 6);
   ctx.rotate(tailWag * Math.PI / 180);
-  ctx.fillStyle = '#6a8090';
+  ctx.fillStyle = finCol;
   ctx.beginPath();
   ctx.ellipse(8, 0, 16, 7, 0.2, 0, Math.PI * 2);
   ctx.fill();
@@ -1084,7 +1100,7 @@ function drawSeal(e) {
   ctx.save();
   ctx.translate(-8, 12);
   ctx.rotate(finWag * Math.PI / 180);
-  ctx.fillStyle = '#6a8090';
+  ctx.fillStyle = finCol;
   ctx.beginPath();
   ctx.ellipse(0, 8, 6, 14, 0, 0, Math.PI * 2);
   ctx.fill();
@@ -1102,20 +1118,30 @@ function drawBird(e) {
 
   const flap = Math.sin(gameTime * 0.22 + e.phase) * 18;
 
+  // バリアントごとのカラーパレット
+  let bBodyCol, bHeadCol, bWingCol, bTailCol, bBeakCol;
+  if (e.type === 'diveBird') {
+    // 上下に動く鳥：暗い青紫（危険感）
+    bBodyCol = '#50607a'; bHeadCol = '#3d4d62'; bWingCol = '#445570'; bTailCol = '#50607a'; bBeakCol = '#7788aa';
+  } else {
+    // 通常の鳥：茶色系
+    bBodyCol = '#8b7355'; bHeadCol = '#6d5a40'; bWingCol = '#7a6245'; bTailCol = '#8b7355'; bBeakCol = '#aa8840';
+  }
+
   // 体
-  ctx.fillStyle = '#8b7355';
+  ctx.fillStyle = bBodyCol;
   ctx.beginPath();
   ctx.ellipse(0, 0, 20, 11, 0, 0, Math.PI * 2);
   ctx.fill();
 
   // 頭
-  ctx.fillStyle = '#6d5a40';
+  ctx.fillStyle = bHeadCol;
   ctx.beginPath();
   ctx.ellipse(-18, -4, 10, 10, -0.2, 0, Math.PI * 2);
   ctx.fill();
 
   // クチバシ
-  ctx.fillStyle = '#aa8840';
+  ctx.fillStyle = bBeakCol;
   ctx.beginPath();
   ctx.moveTo(-26, -4);
   ctx.lineTo(-36, -2);
@@ -1134,7 +1160,7 @@ function drawBird(e) {
   ctx.fill();
 
   // 翼（上）
-  ctx.fillStyle = '#7a6245';
+  ctx.fillStyle = bWingCol;
   ctx.save();
   ctx.translate(0, -6);
   ctx.rotate(-flap * Math.PI / 180);
@@ -1153,7 +1179,7 @@ function drawBird(e) {
   ctx.restore();
 
   // 尾
-  ctx.fillStyle = '#8b7355';
+  ctx.fillStyle = bTailCol;
   ctx.beginPath();
   ctx.moveTo(18, -5);
   ctx.lineTo(30, -10);
