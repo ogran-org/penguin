@@ -824,16 +824,20 @@ function drawEmperorPenguin() {
   ctx.closePath(); ctx.fill();
 
   // 翼（黒）
-  const walkFlap = player.onGround && !player.flying
-    ? Math.sin(player.animFrame * 1.6) * 6 : 0;
+  let emperorWingFlap;
+  if (!player.onGround) {
+    emperorWingFlap = Math.sin(gameTime * 0.38) * 15;
+  } else {
+    emperorWingFlap = Math.sin(player.animFrame * 1.6) * 6;
+  }
   ctx.fillStyle = '#111122';
   ctx.save();
-  ctx.translate(14, 4); ctx.rotate((walkFlap + 8) * Math.PI / 180);
-  ctx.beginPath(); ctx.ellipse(0, 0, 7, 18, 0.35, 0, Math.PI * 2); ctx.fill();
+  ctx.translate(19, 10); ctx.rotate((emperorWingFlap - 8) * Math.PI / 180);
+  ctx.beginPath(); ctx.ellipse(0, 0, 7, 18, -0.35, 0, Math.PI * 2); ctx.fill();
   ctx.restore();
   ctx.save();
-  ctx.translate(-13, 4); ctx.rotate((-walkFlap - 8) * Math.PI / 180);
-  ctx.beginPath(); ctx.ellipse(0, 0, 7, 18, -0.35, 0, Math.PI * 2); ctx.fill();
+  ctx.translate(-18, 10); ctx.rotate((-emperorWingFlap + 8) * Math.PI / 180);
+  ctx.beginPath(); ctx.ellipse(0, 0, 7, 18, 0.35, 0, Math.PI * 2); ctx.fill();
   ctx.restore();
 
   // 足
@@ -931,26 +935,30 @@ function drawPlayer() {
   ctx.fill();
 
   // ─ 翼 ─
-  const walkFlap = player.onGround && !player.flying
-    ? Math.sin(player.animFrame * 1.6) * 6
-    : 0;
-  const flyFlap = player.flying ? Math.sin(gameTime * 0.28) * 22 : walkFlap;
+  let wingFlap;
+  if (player.flying) {
+    wingFlap = Math.sin(gameTime * 0.28) * 22;        // 飛行中：大きく羽ばたく
+  } else if (!player.onGround) {
+    wingFlap = Math.sin(gameTime * 0.38) * 15;        // ジャンプ中：中程度に羽ばたく
+  } else {
+    wingFlap = Math.sin(player.animFrame * 1.6) * 6;  // 歩行中：小さく揺れる
+  }
 
   ctx.fillStyle = '#9aaabb';
   // 右翼（前）
   ctx.save();
-  ctx.translate(14, 4);
-  ctx.rotate((flyFlap + 8) * Math.PI / 180);
+  ctx.translate(19, 10);
+  ctx.rotate((wingFlap - 8) * Math.PI / 180);
   ctx.beginPath();
-  ctx.ellipse(0, 0, 7, 18, 0.35, 0, Math.PI * 2);
+  ctx.ellipse(0, 0, 7, 18, -0.35, 0, Math.PI * 2);
   ctx.fill();
   ctx.restore();
   // 左翼（後ろ）
   ctx.save();
-  ctx.translate(-13, 4);
-  ctx.rotate((-flyFlap - 8) * Math.PI / 180);
+  ctx.translate(-18, 10);
+  ctx.rotate((-wingFlap + 8) * Math.PI / 180);
   ctx.beginPath();
-  ctx.ellipse(0, 0, 7, 18, -0.35, 0, Math.PI * 2);
+  ctx.ellipse(0, 0, 7, 18, 0.35, 0, Math.PI * 2);
   ctx.fill();
   ctx.restore();
 
@@ -1394,37 +1402,59 @@ function drawHeart(x, y, filled) {
 
 // --- タイトル画面 ---
 function drawTitle() {
-  // ペンギン
-  const savedFacing = player.facingRight;
-  player.x = CANVAS_W / 2 - player.w / 2;
-  player.y = 210;
-  player.facingRight = true;
-  player.flying = false;
+  // ─ ペンギンのジャンプアニメーション ─
+  const JUMP_CYCLE  = 90;   // 1サイクル（フレーム）
+  const JUMP_FRAMES = 62;   // 空中にいるフレーム数
+  const JUMP_HEIGHT = 75;   // 最大ジャンプ高さ（px）
+
+  const phase = gameTime % JUMP_CYCLE;
+  const inAir = phase < JUMP_FRAMES;
+  const t     = phase / JUMP_FRAMES;                          // 0→1（空中の進行度）
+  const jumpY = inAir ? -JUMP_HEIGHT * Math.sin(Math.PI * t) : 0;  // 放物線
+  const tilt  = inAir ? Math.cos(Math.PI * t) * 0.18 : 0;          // 上昇：前傾き、下降：後傾き
+
+  const baseY     = GROUND_Y - player.h;
+  const penguinCX = CANVAS_W / 2;
+  const penguinCY = baseY + player.h / 2 + jumpY;
+
+  player.x          = penguinCX - player.w / 2;
+  player.y          = baseY + jumpY;
+  player.facingRight = Math.floor(gameTime / JUMP_CYCLE) % 2 === 0;  // 着地ごとに反転
+  player.flying     = false;
   player.invincible = 0;
+  player.onGround   = !inAir;
+  player.animFrame  = Math.floor(gameTime / 3);
+
+  ctx.save();
+  ctx.translate(penguinCX, penguinCY);
+  ctx.rotate(tilt);
+  ctx.translate(-penguinCX, -penguinCY);
   drawPlayer();
-  player.facingRight = savedFacing;
+  ctx.restore();
+
+  player.onGround = false;
 
   // タイトル
   ctx.textAlign = 'center';
   ctx.font = 'bold 50px Arial';
   ctx.strokeStyle = '#1a4488';
   ctx.lineWidth = 5;
-  ctx.strokeText('Penguin Adventure', CANVAS_W / 2, 145);
+  ctx.strokeText('Penguin Adventure', CANVAS_W / 2, 52);
   ctx.fillStyle = '#ffffff';
-  ctx.fillText('Penguin Adventure', CANVAS_W / 2, 145);
+  ctx.fillText('Penguin Adventure', CANVAS_W / 2, 52);
 
   // 操作説明
-  ctx.font = 'bold 16px Arial';
+  ctx.font = 'bold 15px Arial';
   ctx.fillStyle = '#224488';
-  ctx.fillText('Space / タップ：ジャンプ（長押しで高く・2段まで）', CANVAS_W / 2, 300);
-  ctx.fillText('敵の上から踏みつけると撃破！　魚を取ると空中で何度でもジャンプ可能', CANVAS_W / 2, 322);
+  ctx.fillText('Space / タップ：ジャンプ（長押しで高く・2段まで）', CANVAS_W / 2, 87);
+  ctx.fillText('敵の上から踏みつけると撃破！　魚を取ると空中で何度でもジャンプ可能', CANVAS_W / 2, 105);
 
   // アイテム説明（アイコン付き）
-  ctx.font = 'bold 14px Arial';
+  ctx.font = 'bold 13px Arial';
   ctx.fillStyle = '#1a7744';
-  ctx.fillText('─── アイテム ───', CANVAS_W / 2, 345);
+  ctx.fillText('─── アイテム ───', CANVAS_W / 2, 127);
 
-  const iconY = 375;
+  const iconY = 152;
   const iconScale = 0.65;
   const iconItems = [
     { type: 'fish', x: 160, label: '魚：無限ジャンプ' },
@@ -1443,9 +1473,9 @@ function drawTitle() {
     else if (item.type === 'shield') drawShieldItem(p);
     ctx.restore();
 
-    ctx.font = 'bold 13px Arial';
+    ctx.font = 'bold 12px Arial';
     ctx.fillStyle = '#224488';
-    ctx.fillText(item.label, item.x, iconY + 36);
+    ctx.fillText(item.label, item.x, iconY + 28);
   });
 
   // 点滅スタートメッセージ
@@ -1453,9 +1483,9 @@ function drawTitle() {
     ctx.font = 'bold 20px Arial';
     ctx.strokeStyle = '#1a4488';
     ctx.lineWidth = 3;
-    ctx.strokeText('Space / タップ でスタート！', CANVAS_W / 2, 438);
+    ctx.strokeText('Space / タップ でスタート！', CANVAS_W / 2, 208);
     ctx.fillStyle = '#ffffff';
-    ctx.fillText('Space / タップ でスタート！', CANVAS_W / 2, 438);
+    ctx.fillText('Space / タップ でスタート！', CANVAS_W / 2, 208);
   }
 }
 
