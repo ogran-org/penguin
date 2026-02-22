@@ -427,6 +427,7 @@ function checkCollisions() {
         player.jumpBuffer = 0;
       } else {
         player.stompBounceTimer = STOMP_JUMP_WINDOW;
+        burst(player.x + player.w / 2, player.y + player.h / 2, '#ffaa00', 14);
       }
       break;
     }
@@ -611,6 +612,29 @@ function spawnPowerup() {
   });
 }
 
+function drawStompJumpEffect() {
+  if (player.stompBounceTimer <= 0) return;
+  const remaining = player.stompBounceTimer / STOMP_JUMP_WINDOW;  // 1→0
+  const cx = player.x + player.w / 2;
+  const cy = player.y + player.h / 2;
+
+  ctx.save();
+  for (let i = 0; i < 3; i++) {
+    const phase = (gameTime * 0.09 + i * 0.33) % 1;   // 0→1 を各リングでずらして循環
+    const radius = 16 + phase * 34;
+    const alpha  = (1 - phase) * remaining * 0.9;
+    ctx.globalAlpha = alpha;
+    ctx.shadowColor = '#ff8800';
+    ctx.shadowBlur  = 14;
+    ctx.strokeStyle = phase < 0.45 ? '#ffee44' : '#ff7700';
+    ctx.lineWidth   = 3 - phase * 1.5;
+    ctx.beginPath();
+    ctx.arc(cx, cy, radius, 0, Math.PI * 2);
+    ctx.stroke();
+  }
+  ctx.restore();
+}
+
 function addScorePopup(x, y, pts, color = '#ffee44', multiplier = 1) {
   const vyTable = [0, -1.6, -2.0, -2.5, -3.0];
   scorePopups.push({ x, y, pts, text: `+${pts}`, color, life: 75, maxLife: 75, vy: vyTable[multiplier] ?? -1.6, multiplier });
@@ -692,6 +716,7 @@ function draw() {
 
   drawParticles();
   drawScorePopups();
+  drawStompJumpEffect();
   drawPlayer();
   drawHUD();
 
@@ -780,6 +805,14 @@ function drawMountains(offsetX) {
   });
 }
 
+function calcWingFlap() {
+  if (state === STATE.DYING)                    return Math.sin(gameTime * 0.55) * 25;  // 死亡：激しく
+  if (player.flying)                            return Math.sin(gameTime * 0.58) * 38;  // 飛行：常に激しく（大振幅・高速）
+  if (!player.onGround && player.jumpCount >= 2) return Math.sin(gameTime * 0.52) * 22;  // 2段目：激しく
+  if (!player.onGround)                         return Math.sin(gameTime * 0.30) * 13;  // 1段目：中程度
+  return Math.sin(player.animFrame * 1.6) * 6;                                          // 歩行：小さく
+}
+
 // --- コウテイペンギン描画（無敵中） ---
 function drawEmperorPenguin() {
   // 残り2秒を切ったら点滅
@@ -846,12 +879,7 @@ function drawEmperorPenguin() {
   ctx.closePath(); ctx.fill();
 
   // 翼（黒）
-  let emperorWingFlap;
-  if (!player.onGround) {
-    emperorWingFlap = Math.sin(gameTime * 0.38) * 15;
-  } else {
-    emperorWingFlap = Math.sin(player.animFrame * 1.6) * 6;
-  }
+  const emperorWingFlap = calcWingFlap();
   ctx.fillStyle = '#111122';
   ctx.save();
   ctx.translate(19, 10); ctx.rotate((emperorWingFlap - 8) * Math.PI / 180);
@@ -957,16 +985,7 @@ function drawPlayer() {
   ctx.fill();
 
   // ─ 翼 ─
-  let wingFlap;
-  if (state === STATE.DYING) {
-    wingFlap = Math.sin(gameTime * 0.55) * 25;        // 死亡時：激しく羽ばたく
-  } else if (player.flying) {
-    wingFlap = Math.sin(gameTime * 0.28) * 22;        // 飛行中：大きく羽ばたく
-  } else if (!player.onGround) {
-    wingFlap = Math.sin(gameTime * 0.38) * 15;        // ジャンプ中：中程度に羽ばたく
-  } else {
-    wingFlap = Math.sin(player.animFrame * 1.6) * 6;  // 歩行中：小さく揺れる
-  }
+  const wingFlap = calcWingFlap();
 
   ctx.fillStyle = '#9aaabb';
   // 右翼（前）
