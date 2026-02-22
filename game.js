@@ -588,8 +588,8 @@ function spawnEnemy() {
     }
   } else {
     // アザラシ系
-    // 時間経過で高速アザラシの出現確率が上昇（20% → 最大45%）
-    const fastChance = Math.min(0.20 + Math.max(0, gameTime - 1200) / 10000, 0.45);
+    // 前半は登場しない。gameTime>3000 から線形で上昇（最大45%）
+    const fastChance = gameTime > 3000 ? Math.min((gameTime - 3000) / 10000, 0.45) : 0;
     const isFast = Math.random() < fastChance;
     const sealSpeed = isFast
       ? baseSpeed + 1.8 + Math.random() * 1.0
