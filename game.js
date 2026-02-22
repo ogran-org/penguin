@@ -116,6 +116,7 @@ let spawnTimer = 180;
 let powerupTimer = 350;
 let distAccum = 0;   // 距離スコア用の端数管理
 let airCombo = 0;    // 空中連続撃破コンボ数
+let sealStreak = 0;  // 連続アザラシスポーン数（鳥の出現確率調整に使用）
 let currentScrollSpeed = SCROLL_SPEED_INIT;
 let highScore = parseInt(localStorage.getItem('penguin_highscore') || '0', 10);
 
@@ -150,6 +151,7 @@ function startGame() {
   powerupTimer = 350;
   distAccum = 0;
   airCombo = 0;
+  sealStreak = 0;
   currentScrollSpeed = SCROLL_SPEED_INIT;
   initSnowflakes();
   state = STATE.PLAYING;
@@ -254,8 +256,8 @@ function update() {
   spawnTimer--;
   if (spawnTimer <= 0) {
     spawnEnemy();
-    // 後半は2体同時スポーンの確率を追加（gameTime>5000 から最大30%）
-    if (gameTime > 5000 && Math.random() < Math.min((gameTime - 5000) / 20000, 0.30)) {
+    // 後半は2体同時スポーンの確率を追加（gameTime>6500 から最大20%）
+    if (gameTime > 6500 && Math.random() < Math.min((gameTime - 6500) / 20000, 0.20)) {
       spawnEnemy();
     }
     // √カーブ＋後半は線形でさらに短縮（最小20フレーム）
@@ -558,10 +560,13 @@ function spawnEnemy() {
   const jumpSealChance = gameTime > 1500 ? Math.min(Math.sqrt((gameTime - 1500) / 3500), 0.60) : 0;
   const diveBirdChance = gameTime > 1000 ? Math.min(Math.sqrt((gameTime - 1000) / 3500), 0.55) : 0;
 
+  // 連続アザラシの後は鳥が出やすくなる（1連続:+18%、2連続:+36%、3連続以上:+50%）
+  const birdChance = Math.min(0.42 + sealStreak * 0.18, 0.75);
   const roll = Math.random();
 
-  if (roll < 0.42) {
+  if (roll < birdChance) {
     // 鳥系
+    sealStreak = 0;  // 鳥が出たらストリークリセット
     if (Math.random() < diveBirdChance) {
       // 大きく上下に動く鳥
       enemies.push({
@@ -587,6 +592,7 @@ function spawnEnemy() {
       });
     }
   } else {
+    sealStreak++;  // アザラシが出たらストリーク加算
     // アザラシ系
     // 前半は登場しない。gameTime>3000 から線形で上昇（最大45%）
     const fastChance = gameTime > 3000 ? Math.min((gameTime - 3000) / 10000, 0.45) : 0;
