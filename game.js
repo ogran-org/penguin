@@ -230,9 +230,15 @@ function update() {
   spawnTimer--;
   if (spawnTimer <= 0) {
     spawnEnemy();
-    // 約8.8秒（800フレーム）ごとに一段階（65フレーム）間隔が短縮される
-    const interval = Math.max(25, 220 - Math.floor(gameTime / 800) * 65);
-    spawnTimer = interval + Math.floor(Math.random() * 20);
+    // 後半は2体同時スポーンの確率を追加（gameTime>5000 から最大30%）
+    if (gameTime > 5000 && Math.random() < Math.min((gameTime - 5000) / 20000, 0.30)) {
+      spawnEnemy();
+    }
+    // √カーブ＋後半は線形でさらに短縮（最小20フレーム）
+    const sqrtDecay = Math.sqrt(gameTime) * 2.1;
+    const lateDecay = Math.max(0, (gameTime - 3000) / 160);
+    const interval = Math.max(20, Math.round(220 - sqrtDecay - lateDecay));
+    spawnTimer = interval + Math.floor(Math.random() * (gameTime > 5000 ? 10 : 20));
   }
   powerupTimer--;
   if (powerupTimer <= 0) {
@@ -522,11 +528,11 @@ function checkCollisions() {
 
 // ─── スポーン ────────────────────────────────────────────────────────────────
 function spawnEnemy() {
-  const baseSpeed = 0.3 + Math.min(gameTime / 500, 2.5);
+  const baseSpeed = 0.3 + Math.min(gameTime / 900, 2.0);
 
-  // 時間経過で強化バリアントの出現確率が上がる
-  const jumpSealChance = gameTime > 1200 ? Math.min((gameTime - 1200) / 3000, 0.5) : 0;
-  const diveBirdChance = gameTime > 800 ? Math.min((gameTime - 800) / 2500, 0.45) : 0;
+  // 時間経過で強化バリアントの出現確率が上がる（後半はより積極的に出現）
+  const jumpSealChance = gameTime > 1500 ? Math.min(Math.sqrt((gameTime - 1500) / 3500), 0.60) : 0;
+  const diveBirdChance = gameTime > 1000 ? Math.min(Math.sqrt((gameTime - 1000) / 3500), 0.55) : 0;
 
   const roll = Math.random();
 
@@ -558,15 +564,19 @@ function spawnEnemy() {
     }
   } else {
     // アザラシ系
-    const isFast = Math.random() < 0.2;  // 20%の確率で高速アザラシ
+    // 時間経過で高速アザラシの出現確率が上昇（20% → 最大45%）
+    const fastChance = Math.min(0.20 + Math.max(0, gameTime - 1200) / 10000, 0.45);
+    const isFast = Math.random() < fastChance;
     const sealSpeed = isFast
       ? baseSpeed + 1.8 + Math.random() * 1.0
       : baseSpeed + Math.random() * 1.2;
 
     if (Math.random() < jumpSealChance) {
-      // ジャンプするアザラシ（3段階のジャンプ高さ）
-      const jumpLevels = [-6, -9, -12];  // 低・中・高
-      const jumpPower = jumpLevels[Math.floor(Math.random() * 3)];
+      // ジャンプするアザラシ（時間経過で高いジャンプが解放される）
+      const jumpLevels = [-6];                      // 序盤：低ジャンプのみ
+      if (gameTime > 2500) jumpLevels.push(-9);     // 中盤：中ジャンプ追加
+      if (gameTime > 4500) jumpLevels.push(-12);    // 終盤：高ジャンプ追加
+      const jumpPower = jumpLevels[Math.floor(Math.random() * jumpLevels.length)];
       const interval = Math.max(40, 80 - Math.floor(gameTime / 600) * 5);
       enemies.push({
         type: 'seal',
@@ -1045,8 +1055,17 @@ function drawSeal(e) {
     // 速い：橙色
     bodyCol = '#c07840'; headCol = '#d08850'; finCol = '#a86030'; whiskerCol = '#e8bb88';
   } else if (e.jumping) {
-    // ジャンプ：青緑
-    bodyCol = '#3d8f7a'; headCol = '#4ea08a'; finCol = '#2d7060'; whiskerCol = '#88ccbb';
+    // ジャンプ：高さに応じて色の濃さを変える
+    if (e.jumpPower <= -12) {
+      // 高ジャンプ：濃い青紫
+      bodyCol = '#4030a0'; headCol = '#5040b4'; finCol = '#302090'; whiskerCol = '#9080d0';
+    } else if (e.jumpPower <= -9) {
+      // 中ジャンプ：中間の青
+      bodyCol = '#2860a8'; headCol = '#3872bc'; finCol = '#184e98'; whiskerCol = '#80a8d8';
+    } else {
+      // 低ジャンプ：明るい青緑
+      bodyCol = '#3d8f7a'; headCol = '#4ea08a'; finCol = '#2d7060'; whiskerCol = '#88ccbb';
+    }
   } else {
     // 通常：青灰色
     bodyCol = '#7a8fa0'; headCol = '#8aa0b0'; finCol = '#6a8090'; whiskerCol = '#aabbc8';
