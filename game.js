@@ -10,14 +10,16 @@ canvas.height = CANVAS_H;
 
 // ─── 定数 ────────────────────────────────────────────────────────────────────
 const GRAVITY = 0.40;
+const FALL_GRAVITY = 0.75;          // 落下時の重力（マリオ風：落下を速く）
 const GROUND_Y = CANVAS_H - 70;   // 地面の上端
 const SCROLL_SPEED_INIT = 0.5;         // 開始時のスクロール速度
 const SCROLL_SPEED_MAX = 4.0;         // 最大スクロール速度
 const FLY_DURATION = 300;             // 飛行フレーム数（約5秒）
 const PLAYER_SPEED = 5;
 const JUMP_POWER = -11;
-const STOMP_JUMP_POWER = -17;       // ストンプ後の大ジャンプ
-const STOMP_JUMP_WINDOW = 14;       // 大ジャンプ受け付けフレーム数
+const STOMP_JUMP_POWER = -14;       // ストンプ後の大ジャンプ
+const STOMP_JUMP_WINDOW = 14;       // 大ジャンプ受け付けフレーム数（ストンプ後）
+const STOMP_JUMP_BUFFER = 8;        // 大ジャンプ先行入力フレーム数（ストンプ前）
 const JUMP_CUT_VY = -4;             // 短押し時の上昇速度上限
 const SHIELD_DURATION = 720;           // 無敵アイテムの持続フレーム数（約12秒）
 
@@ -63,6 +65,7 @@ const player = {
   onGround: false,
   jumpCount: 0,
   stompBounceTimer: 0,
+  jumpBuffer: 0,
   flying: false,
   flyTimer: 0,
   hp: 3,
@@ -99,6 +102,7 @@ function startGame() {
     onGround: true,
     jumpCount: 0,
     stompBounceTimer: 0,
+    jumpBuffer: 0,
     flying: false,
     flyTimer: 0,
     hp: 3,
@@ -152,6 +156,7 @@ function onKeyDown(code) {
 
   // ジャンプ（Space のみ）
   if (code === 'Space') {
+    player.jumpBuffer = STOMP_JUMP_BUFFER;  // 先行入力を記録
     if (player.stompBounceTimer > 0) {
       // ストンプ後の大ジャンプ
       player.vy = STOMP_JUMP_POWER;
@@ -173,7 +178,7 @@ function update() {
     gameTime++;
     player.deathTimer--;
     player.deathAngle = Math.min(player.deathAngle + 0.055, Math.PI / 2);
-    player.vy += GRAVITY;
+    player.vy += player.vy > 0 ? FALL_GRAVITY : GRAVITY;
     player.y += player.vy;
     const gnd = GROUND_Y - player.h;
     if (player.y >= gnd) { player.y = gnd; player.vy = 0; }
@@ -243,8 +248,8 @@ function updatePlayer() {
     }
   }
 
-  // 重力
-  player.vy += GRAVITY;
+  // 重力（落下時は重く：マリオ風）
+  player.vy += player.vy > 0 ? FALL_GRAVITY : GRAVITY;
 
   // ジャンプキーを離したら上昇をカット
   if (player.vy < JUMP_CUT_VY && !isDown('Space')) {
@@ -277,6 +282,7 @@ function updatePlayer() {
   if (player.invincible > 0) player.invincible--;
   if (player.shieldTimer > 0) player.shieldTimer--;
   if (player.stompBounceTimer > 0) player.stompBounceTimer--;
+  if (player.jumpBuffer > 0) player.jumpBuffer--;
 
   // アニメーション
   player.animTimer++;
@@ -405,7 +411,14 @@ function checkCollisions() {
       player.score += pts;
       player.vy = -5;  // 小さく弾む
       player.jumpCount = 0;
-      player.stompBounceTimer = STOMP_JUMP_WINDOW;
+      if (isDown('Space') || player.jumpBuffer > 0) {
+        // 長押し中または先行入力あり：即座に大ジャンプ
+        player.vy = STOMP_JUMP_POWER;
+        player.jumpCount = 1;
+        player.jumpBuffer = 0;
+      } else {
+        player.stompBounceTimer = STOMP_JUMP_WINDOW;
+      }
       break;
     }
   }
@@ -936,7 +949,9 @@ function drawPlayer() {
 
   // ─ 翼 ─
   let wingFlap;
-  if (player.flying) {
+  if (state === STATE.DYING) {
+    wingFlap = Math.sin(gameTime * 0.55) * 25;        // 死亡時：激しく羽ばたく
+  } else if (player.flying) {
     wingFlap = Math.sin(gameTime * 0.28) * 22;        // 飛行中：大きく羽ばたく
   } else if (!player.onGround) {
     wingFlap = Math.sin(gameTime * 0.38) * 15;        // ジャンプ中：中程度に羽ばたく
