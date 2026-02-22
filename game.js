@@ -11,6 +11,7 @@ canvas.height = CANVAS_H;
 // ─── 定数 ────────────────────────────────────────────────────────────────────
 const GRAVITY = 0.40;
 const FALL_GRAVITY = 0.75;          // 落下時の重力（マリオ風：落下を速く）
+const FLY_FALL_GRAVITY = 0.30;      // 飛行中の落下重力（ゆるやか）
 const GROUND_Y = CANVAS_H - 70;   // 地面の上端
 const SCROLL_SPEED_INIT = 0.5;         // 開始時のスクロール速度
 const SCROLL_SPEED_MAX = 4.0;         // 最大スクロール速度
@@ -248,8 +249,9 @@ function updatePlayer() {
     }
   }
 
-  // 重力（落下時は重く：マリオ風）
-  player.vy += player.vy > 0 ? FALL_GRAVITY : GRAVITY;
+  // 重力（落下時は重く：マリオ風、飛行中は落下をゆるやかに）
+  const fallG = player.flying ? FLY_FALL_GRAVITY : FALL_GRAVITY;
+  player.vy += player.vy > 0 ? fallG : GRAVITY;
 
   // ジャンプキーを離したら上昇をカット
   if (player.vy < JUMP_CUT_VY && !isDown('Space')) {
@@ -400,7 +402,7 @@ function checkCollisions() {
   for (let ei = enemies.length - 1; ei >= 0; ei--) {
     const e = enemies[ei];
     if (e.knocked) continue;
-    const hOverlap = phx + phw - 8 > e.x + 4 && phx + 8 < e.x + e.w - 4;
+    const hOverlap = phx + phw - 8 > e.x - 8 && phx + 8 < e.x + e.w + 8;
     const playerBottom = phy + phh;
     const stomping = player.vy > 0 && playerBottom >= e.y && playerBottom <= e.y + e.h * 0.45;
     if (hOverlap && stomping) {
