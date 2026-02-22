@@ -1432,20 +1432,20 @@ function drawHUD() {
   ctx.textAlign = 'left';
   ctx.strokeStyle = '#224488';
   ctx.lineWidth = 3;
-  ctx.strokeText(`SCORE: ${player.score}`, 16, 36);
+  ctx.strokeText(`スコア: ${player.score}`, 16, 36);
   ctx.fillStyle = '#ffffff';
-  ctx.fillText(`SCORE: ${player.score}`, 16, 36);
+  ctx.fillText(`スコア: ${player.score}`, 16, 36);
 
   ctx.font = 'bold 16px Arial';
   ctx.strokeStyle = '#224488';
   ctx.lineWidth = 3;
-  ctx.strokeText(`HI-SCORE: ${Math.max(player.score, highScore)}`, 16, 58);
+  ctx.strokeText(`ハイスコア: ${Math.max(player.score, highScore)}`, 16, 58);
   ctx.fillStyle = '#ffeedd';
-  ctx.fillText(`HI-SCORE: ${Math.max(player.score, highScore)}`, 16, 58);
+  ctx.fillText(`ハイスコア: ${Math.max(player.score, highScore)}`, 16, 58);
 
-  // HP ハート
+  // HP ハート（ハイスコアの下・左寄せ）
   for (let i = 0; i < 3; i++) {
-    drawHeart(CANVAS_W - 28 - i * 34, 12, i < player.hp);
+    drawHeart(30 + i * 32, 70, i < player.hp);
   }
 
   const bw = 200;
