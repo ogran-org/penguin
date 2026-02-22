@@ -260,10 +260,10 @@ function update() {
     if (gameTime > 6500 && Math.random() < Math.min((gameTime - 6500) / 20000, 0.20)) {
       spawnEnemy();
     }
-    // √カーブ＋後半は線形でさらに短縮（最小20フレーム）
+    // √カーブ＋後半は線形でさらに短縮（最小25フレーム）
     const sqrtDecay = Math.sqrt(gameTime) * 2.1;
-    const lateDecay = Math.max(0, (gameTime - 3000) / 160);
-    const interval = Math.max(20, Math.round(220 - sqrtDecay - lateDecay));
+    const lateDecay = Math.max(0, (gameTime - 3000) / 260);
+    const interval = Math.max(25, Math.round(220 - sqrtDecay - lateDecay));
     spawnTimer = interval + Math.floor(Math.random() * (gameTime > 5000 ? 10 : 20));
   }
   powerupTimer--;
