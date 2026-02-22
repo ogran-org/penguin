@@ -50,13 +50,37 @@ function isDown(code) {
 // ─── タッチ操作（画面全体タップ） ────────────────────────────────────────────
 document.addEventListener('touchstart', e => {
   e.preventDefault();
+  const touch = e.touches[0];
+  const rect = canvas.getBoundingClientRect();
+  const mx = (touch.clientX - rect.left) * (CANVAS_W / rect.width);
+  const my = (touch.clientY - rect.top) * (CANVAS_H / rect.height);
+  handlePointerDown(mx, my);
+}, { passive: false });
+document.addEventListener('touchend', e => { e.preventDefault(); virtualKeys['Space'] = false; }, { passive: false });
+document.addEventListener('touchcancel', e => { e.preventDefault(); virtualKeys['Space'] = false; }, { passive: false });
+
+canvas.addEventListener('mousedown', e => {
+  const rect = canvas.getBoundingClientRect();
+  const mx = (e.clientX - rect.left) * (CANVAS_W / rect.width);
+  const my = (e.clientY - rect.top) * (CANVAS_H / rect.height);
+  handlePointerDown(mx, my);
+});
+
+function handlePointerDown(mx, my) {
+  // タイトル画面：ハイスコアリセットボタン判定
+  if (state === STATE.TITLE) {
+    const bx = CANVAS_W / 2 + 6, by = 217, bw = 76, bh = 20;
+    if (mx >= bx && mx <= bx + bw && my >= by && my <= by + bh) {
+      highScore = 0;
+      localStorage.setItem('penguin_highscore', '0');
+      return;
+    }
+  }
   if (!virtualKeys['Space']) {
     virtualKeys['Space'] = true;
     onKeyDown('Space');
   }
-}, { passive: false });
-document.addEventListener('touchend', e => { e.preventDefault(); virtualKeys['Space'] = false; }, { passive: false });
-document.addEventListener('touchcancel', e => { e.preventDefault(); virtualKeys['Space'] = false; }, { passive: false });
+}
 
 // ─── プレイヤー ──────────────────────────────────────────────────────────────
 const player = {
@@ -1576,6 +1600,21 @@ function drawTitle() {
     ctx.fillStyle = '#ffffff';
     ctx.fillText('Space / タップ でスタート！', CANVAS_W / 2, 208);
   }
+
+  // ハイスコア表示（中央を境に右寄せ）
+  ctx.font = 'bold 16px Arial';
+  ctx.textAlign = 'right';
+  ctx.strokeStyle = '#224488';
+  ctx.lineWidth = 3;
+  ctx.strokeText(`ハイスコア: ${highScore}`, CANVAS_W / 2 - 8, 232);
+  ctx.fillStyle = '#ffeedd';
+  ctx.fillText(`ハイスコア: ${highScore}`, CANVAS_W / 2 - 8, 232);
+
+  // リセットボタン（中央を境に左寄せ）
+  ctx.font = '14px Arial';
+  ctx.textAlign = 'left';
+  ctx.fillStyle = highScore > 0 ? '#88aacc' : '#445566';
+  ctx.fillText('[リセット]', CANVAS_W / 2 + 8, 232);
 }
 
 // --- ゲームオーバー画面 ---
