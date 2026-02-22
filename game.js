@@ -3,10 +3,22 @@
 // ─── Canvas セットアップ ───────────────────────────────────────────────────────
 const canvas = document.getElementById('gameCanvas');
 const ctx = canvas.getContext('2d');
-const CANVAS_W = 800;
-const CANVAS_H = 450;
-canvas.width = CANVAS_W;
-canvas.height = CANVAS_H;
+const CANVAS_W = 800;  // 論理座標系の幅
+const CANVAS_H = 450;  // 論理座標系の高さ
+
+// 表示サイズ × devicePixelRatio で物理解像度を設定（ぼやけ防止）
+function resizeCanvas() {
+  const dpr = window.devicePixelRatio || 1;
+  const rect = canvas.getBoundingClientRect();
+  const w = Math.round(rect.width * dpr);
+  const h = Math.round(rect.height * dpr);
+  if (w > 0 && h > 0 && (canvas.width !== w || canvas.height !== h)) {
+    canvas.width = w;
+    canvas.height = h;
+  }
+}
+new ResizeObserver(resizeCanvas).observe(canvas);
+resizeCanvas();
 
 // ─── 定数 ────────────────────────────────────────────────────────────────────
 const GRAVITY = 0.40;
@@ -745,6 +757,9 @@ function burst(x, y, color, count) {
 
 // ─── 描画 ─────────────────────────────────────────────────────────────────────
 function draw() {
+  // 論理座標(800x450)を物理ピクセルにスケール
+  ctx.setTransform(canvas.width / CANVAS_W, 0, 0, canvas.height / CANVAS_H, 0, 0);
+
   drawBackground();
 
   if (state === STATE.TITLE) {
