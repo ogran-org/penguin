@@ -16,6 +16,8 @@ const SCROLL_SPEED_MAX = 4.0;         // 最大スクロール速度
 const FLY_DURATION = 300;             // 飛行フレーム数（約5秒）
 const PLAYER_SPEED = 5;
 const JUMP_POWER = -11;
+const STOMP_JUMP_POWER = -17;       // ストンプ後の大ジャンプ
+const STOMP_JUMP_WINDOW = 14;       // 大ジャンプ受け付けフレーム数
 const JUMP_CUT_VY = -4;             // 短押し時の上昇速度上限
 const SHIELD_DURATION = 720;           // 無敵アイテムの持続フレーム数（約12秒）
 
@@ -60,6 +62,7 @@ const player = {
   facingRight: true,
   onGround: false,
   jumpCount: 0,
+  stompBounceTimer: 0,
   flying: false,
   flyTimer: 0,
   hp: 3,
@@ -95,6 +98,7 @@ function startGame() {
     facingRight: true,
     onGround: true,
     jumpCount: 0,
+    stompBounceTimer: 0,
     flying: false,
     flyTimer: 0,
     hp: 3,
@@ -148,7 +152,13 @@ function onKeyDown(code) {
 
   // ジャンプ（Space のみ）
   if (code === 'Space') {
-    if (player.flying || player.jumpCount < 2) {
+    if (player.stompBounceTimer > 0) {
+      // ストンプ後の大ジャンプ
+      player.vy = STOMP_JUMP_POWER;
+      player.stompBounceTimer = 0;
+      player.jumpCount = 1;
+      player.onGround = false;
+    } else if (player.flying || player.jumpCount < 2) {
       player.vy = JUMP_POWER * (player.jumpCount === 1 && !player.flying ? 0.85 : 1);
       if (!player.flying) player.jumpCount++;
       player.onGround = false;
@@ -266,6 +276,7 @@ function updatePlayer() {
   // クールダウン
   if (player.invincible > 0) player.invincible--;
   if (player.shieldTimer > 0) player.shieldTimer--;
+  if (player.stompBounceTimer > 0) player.stompBounceTimer--;
 
   // アニメーション
   player.animTimer++;
@@ -393,7 +404,8 @@ function checkCollisions() {
       addScorePopup(e.x + e.w / 2, e.y, pts, '#aaddff', comboMult);
       player.score += pts;
       player.vy = -5;  // 小さく弾む
-      player.jumpCount = 0;   // 連続踏みつけ可能にする
+      player.jumpCount = 0;
+      player.stompBounceTimer = STOMP_JUMP_WINDOW;
       break;
     }
   }
