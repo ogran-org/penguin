@@ -599,7 +599,7 @@ function spawnEnemy() {
     const isFast = Math.random() < fastChance;
     const sealSpeed = isFast
       ? baseSpeed + 1.8 + Math.random() * 1.0
-      : baseSpeed + Math.random() * 1.2;
+      : baseSpeed + 0.7 + Math.random() * 1.0;
 
     if (Math.random() < jumpSealChance) {
       // ジャンプするアザラシ（時間経過で高いジャンプが解放される）
