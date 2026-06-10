@@ -78,9 +78,18 @@ canvas.addEventListener('mousedown', e => {
   handlePointerDown(mx, my);
 });
 
+// Ver.2 へのリンクボタン（タイトル画面右上。当たり判定と描画で共有）
+const V2_BTN = { x: CANVAS_W - 150, y: 12, w: 138, h: 32 };
+
 function handlePointerDown(mx, my) {
   // タイトル画面：ハイスコアリセットボタン判定
   if (state === STATE.TITLE) {
+    // Ver.2 リンクボタン
+    if (mx >= V2_BTN.x && mx <= V2_BTN.x + V2_BTN.w &&
+      my >= V2_BTN.y && my <= V2_BTN.y + V2_BTN.h) {
+      location.href = 'ver2/index.html';
+      return;
+    }
     const bx = CANVAS_W / 2 + 6, by = 217, bw = 76, bh = 20;
     if (mx >= bx && mx <= bx + bw && my >= by && my <= by + bh) {
       highScore = 0;
@@ -1636,6 +1645,24 @@ function drawTitle() {
   ctx.textAlign = 'left';
   ctx.fillStyle = highScore > 0 ? '#88aacc' : '#445566';
   ctx.fillText('[リセット]', CANVAS_W / 2 + 8, 232);
+
+  // Ver.2 へのリンクボタン（右上）
+  const v2Pulse = 0.75 + Math.sin(gameTime * 0.07) * 0.25;
+  ctx.save();
+  ctx.shadowColor = '#ffd700';
+  ctx.shadowBlur = 10 * v2Pulse;
+  ctx.fillStyle = '#1a7744';
+  ctx.strokeStyle = '#ffd700';
+  ctx.lineWidth = 2;
+  roundRect(ctx, V2_BTN.x, V2_BTN.y, V2_BTN.w, V2_BTN.h, 8);
+  ctx.fill();
+  ctx.stroke();
+  ctx.shadowBlur = 0;
+  ctx.fillStyle = '#ffffff';
+  ctx.font = 'bold 15px Arial';
+  ctx.textAlign = 'center';
+  ctx.fillText('Ver.2 であそぶ ▶', V2_BTN.x + V2_BTN.w / 2, V2_BTN.y + 21);
+  ctx.restore();
 }
 
 // --- ゲームオーバー画面 ---
